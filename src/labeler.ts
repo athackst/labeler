@@ -23,7 +23,8 @@ export const run = () =>
   });
 
 async function labeler() {
-  const {token, configPath, syncLabels, dot, prNumbers} = getInputs();
+  const {token, configPath, syncLabels, dot, prNumbers, createMissingLabels} =
+    getInputs();
 
   if (!prNumbers.length) {
     core.warning('Could not get pull request number(s), exiting');
@@ -57,6 +58,14 @@ async function labeler() {
     let newLabels: string[] = [];
 
     try {
+      if (createMissingLabels) {
+        const missingLabels = await api.getMissingLabels(client, labelsToAdd);
+        if (missingLabels.length > 0) {
+          core.info(`Creating labels: ${missingLabels.join(', ')}`);
+          await api.createLabels(client, missingLabels);
+        }
+      }
+
       if (!isEqual(labelsToAdd, preexistingLabels)) {
         await api.setLabels(client, pullRequest.number, labelsToAdd);
         newLabels = labelsToAdd.filter(

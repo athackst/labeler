@@ -9,6 +9,8 @@ jest.mock('@actions/github');
 
 const gh = github.getOctokit('_');
 const setLabelsMock = jest.spyOn(gh.rest.issues, 'setLabels');
+const listLabelsMock = jest.spyOn(gh.rest.issues, 'listLabelsForRepo');
+const createLabelMock = jest.spyOn(gh.rest.issues, 'createLabel');
 const reposMock = jest.spyOn(gh.rest.repos, 'getContent');
 const paginateMock = jest.spyOn(gh, 'paginate');
 const getPullMock = jest.spyOn(gh.rest.pulls, 'get');
@@ -16,6 +18,7 @@ const readFileSyncMock = jest.spyOn(fs, 'readFileSync');
 const existsSyncMock = jest.spyOn(fs, 'existsSync');
 const coreErrorMock = jest.spyOn(core, 'error');
 const coreWarningMock = jest.spyOn(core, 'warning');
+const coreInfoMock = jest.spyOn(core, 'info');
 const coreSetFailedMock = jest.spyOn(core, 'setFailed');
 const setOutputSpy = jest.spyOn(core, 'setOutput');
 
@@ -47,6 +50,7 @@ const configureInput = (
     'sync-labels': boolean;
     dot: boolean;
     'pr-number': string[];
+    create: boolean;
   }>
 ) => {
   jest
@@ -336,6 +340,9 @@ describe('run', () => {
         labels: existingLabels
       }
     });
+    listLabelsMock.mockResolvedValue(<any>{
+      data: existingLabels
+    });
 
     await run();
 
@@ -469,6 +476,64 @@ describe('run', () => {
     expect(existsSyncMock).toHaveBeenCalledWith(configFilePath);
     expect(readFileSyncMock).not.toHaveBeenCalled();
     expect(reposMock).toHaveBeenCalled();
+  });
+
+  it('creates missing labels when createMissingLabels is true', async () => {
+    configureInput({
+      'repo-token': 'foo',
+      'configuration-path': 'bar',
+      create: true
+    });
+
+    usingLabelerConfigYaml('only_pdfs.yml');
+    mockGitHubResponseChangedFiles('foo.pdf');
+    getPullMock.mockResolvedValue(<any>{
+      data: {
+        labels: []
+      }
+    });
+
+    await run();
+
+    expect(coreInfoMock).toHaveBeenCalledTimes(2);
+    expect(coreInfoMock).toHaveBeenCalledWith(
+      'Creating labels: touched-a-pdf-file'
+    );
+
+    expect(createLabelMock).toHaveBeenCalledTimes(1);
+    expect(createLabelMock).toHaveBeenCalledWith({
+      owner: 'monalisa',
+      repo: 'helloworld',
+      name: 'touched-a-pdf-file'
+    });
+    expect(coreWarningMock).toHaveBeenCalledTimes(0); // No warnings issued
+  });
+
+  it('does not create labels or issue warnings if all labels exist', async () => {
+    configureInput({
+      'repo-token': 'foo',
+      'configuration-path': 'bar',
+      create: true
+    });
+
+    usingLabelerConfigYaml('only_pdfs.yml');
+    mockGitHubResponseChangedFiles('foo.pdf');
+    getPullMock.mockResolvedValue(<any>{
+      data: {
+        labels: [{name: 'touched-a-pdf-file'}]
+      }
+    });
+    listLabelsMock.mockResolvedValue(<any>{
+      data: [{name: 'touched-a-pdf-file'}]
+    });
+
+    usingLabelerConfigYaml('only_pdfs.yml');
+    mockGitHubResponseChangedFiles('foo.pdf');
+
+    await run();
+
+    expect(createLabelMock).toHaveBeenCalledTimes(0); // No labels are created
+    expect(coreWarningMock).toHaveBeenCalledTimes(0); // No warnings issued
   });
 
   test.each([

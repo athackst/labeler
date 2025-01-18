@@ -436,7 +436,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.setLabels = void 0;
+exports.createLabels = exports.getMissingLabels = exports.setLabels = void 0;
 const github = __importStar(__nccwpck_require__(5438));
 const setLabels = (client, prNumber, labels) => __awaiter(void 0, void 0, void 0, function* () {
     yield client.rest.issues.setLabels({
@@ -447,6 +447,28 @@ const setLabels = (client, prNumber, labels) => __awaiter(void 0, void 0, void 0
     });
 });
 exports.setLabels = setLabels;
+// Function to get missing labels that need to be created
+const getMissingLabels = (client, labels) => __awaiter(void 0, void 0, void 0, function* () {
+    const { data: existingLabels } = yield client.rest.issues.listLabelsForRepo({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo
+    });
+    return labels.filter(label => !existingLabels.some(existingLabel => existingLabel.name === label));
+});
+exports.getMissingLabels = getMissingLabels;
+// Function to create a list of labels
+const createLabels = (client, labels) => __awaiter(void 0, void 0, void 0, function* () {
+    for (const label of labels) {
+        yield client.rest.issues.createLabel({
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            name: label,
+            color: 'ffffff', // Optional: Set a default color for new labels
+            description: 'Automatically created label' // Optional: Add a description
+        });
+    }
+});
+exports.createLabels = createLabels;
 
 
 /***/ }),
@@ -873,7 +895,8 @@ const getInputs = () => ({
     configPath: core.getInput('configuration-path', { required: true }),
     syncLabels: core.getBooleanInput('sync-labels'),
     dot: core.getBooleanInput('dot'),
-    prNumbers: (0, get_pr_numbers_1.getPrNumbers)()
+    prNumbers: (0, get_pr_numbers_1.getPrNumbers)(),
+    createMissingLabels: core.getBooleanInput('create')
 });
 exports.getInputs = getInputs;
 
@@ -1049,7 +1072,7 @@ exports.run = run;
 function labeler() {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, e_1, _b, _c;
-        const { token, configPath, syncLabels, dot, prNumbers } = (0, get_inputs_1.getInputs)();
+        const { token, configPath, syncLabels, dot, prNumbers, createMissingLabels } = (0, get_inputs_1.getInputs)();
         if (!prNumbers.length) {
             core.warning('Could not get pull request number(s), exiting');
             return;
@@ -1077,6 +1100,13 @@ function labeler() {
                 const excessLabels = [...allLabels].slice(GITHUB_MAX_LABELS);
                 let newLabels = [];
                 try {
+                    if (createMissingLabels) {
+                        const missingLabels = yield api.getMissingLabels(client, labelsToAdd);
+                        if (missingLabels.length > 0) {
+                            core.info(`Creating labels: ${missingLabels.join(', ')}`);
+                            yield api.createLabels(client, missingLabels);
+                        }
+                    }
                     if (!(0, lodash_isequal_1.default)(labelsToAdd, preexistingLabels)) {
                         yield api.setLabels(client, pullRequest.number, labelsToAdd);
                         newLabels = labelsToAdd.filter(label => !preexistingLabels.includes(label));

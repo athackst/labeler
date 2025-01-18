@@ -174,8 +174,9 @@ Various inputs are defined in [`action.yml`](action.yml) to let you configure th
 | `repo-token`         | Token to use to authorize label changes. Typically the GITHUB_TOKEN secret                                                                                               | `github.token`        |
 | `configuration-path` | The path to the label configuration file. If the file doesn't exist at the specified path on the runner, action will read from the source repository via the Github API. | `.github/labeler.yml` |
 | `sync-labels`        | Whether or not to remove labels when matching files are reverted or no longer changed by the PR                                                                          | `false`               |
-| `dot`                | Whether or not to auto-include paths starting with dot (e.g. `.github`)                                                                                                  | `true`               |
+| `dot`                | Whether or not to auto-include paths starting with dot (e.g. `.github`)                                                                                                  | `true`                |
 | `pr-number`          | The number(s) of pull request to update, rather than detecting from the workflow context                                                                                 | N/A                   |
+| `create`             | Whether or not to automatically create labels in the repository if they are missing.                                                                                     | `false`                |
 
 ##### Using `configuration-path` input together with the `@actions/checkout` action
 You might want to use action called [@actions/checkout](https://github.com/actions/checkout) to upload label configuration file onto the runner from the current or any other repositories. See usage example below:
@@ -214,6 +215,28 @@ jobs:
           1
           2
           3
+```
+
+
+##### Example workflow creating missing labels
+
+```yml
+name: "Label and create missing"
+on:
+  - pull_request_target
+
+jobs:
+  labeler:
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+    
+    - uses: actions/labeler@v5
+      with:        
+        create: true
 ```
 
 **Note:** in normal usage the `pr-number` input is not required as the action will detect the PR number from the workflow context.
@@ -265,6 +288,7 @@ In order to add labels to pull requests, the GitHub labeler action requires writ
     permissions:
       contents: read
       pull-requests: write
+      issues: write # Needed for creating labels that don't already exist.
 ```
 
 ## Notes regarding `pull_request_target` event

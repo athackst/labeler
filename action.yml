@@ -21,6 +21,10 @@ inputs:
   pr-number:
     description: 'The pull request number(s)'
     required: false
+  create:
+    description: 'Create missing labeles'
+    default: false
+    required: false
 
 outputs:
   new-labels:
