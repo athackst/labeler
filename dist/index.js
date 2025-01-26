@@ -270,6 +270,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getLabelConfigs = void 0;
 exports.getLabelConfigMapFromObject = getLabelConfigMapFromObject;
+exports.toLabelConfig = toLabelConfig;
 exports.toMatchConfig = toMatchConfig;
 const core = __importStar(__nccwpck_require__(2186));
 const yaml = __importStar(__nccwpck_require__(1917));
@@ -278,6 +279,7 @@ const get_content_1 = __nccwpck_require__(347);
 const changedFiles_1 = __nccwpck_require__(7358);
 const branch_1 = __nccwpck_require__(3824);
 const ALLOWED_CONFIG_KEYS = ['changed-files', 'head-branch', 'base-branch'];
+const META_CONFIG_KEYS = ['description', 'color'];
 const getLabelConfigs = (client, configurationPath) => Promise.resolve()
     .then(() => {
     if (!fs_1.default.existsSync(configurationPath)) {
@@ -336,6 +338,19 @@ function getLabelConfigMapFromObject(configObject) {
                         updatedConfig.push({ any: [newMatchConfig] });
                     }
                 }
+                else if (META_CONFIG_KEYS.includes(key)) {
+                    const metadata = toLabelConfig(configValue);
+                    // Find or set the `meta` key so that we can add these properties to that rule,
+                    // Or create a new `meta` key and add that to our array of configs.
+                    const indexOfMeta = updatedConfig.findIndex(mc => !!mc['meta']);
+                    if (indexOfMeta >= 0) {
+                        const existingMeta = updatedConfig[indexOfMeta].meta || {};
+                        Object.assign(existingMeta, metadata);
+                    }
+                    else {
+                        updatedConfig.push({ meta: metadata });
+                    }
+                }
                 else {
                     // Log the key that we don't know what to do with.
                     core.info(`An unknown config option was under ${label}: ${key}`);
@@ -348,6 +363,22 @@ function getLabelConfigMapFromObject(configObject) {
         }
     }
     return labelMap;
+}
+function toLabelConfig(config) {
+    const metadata = {};
+    if (typeof config.description === 'string') {
+        metadata.description = config.description;
+    }
+    else if (config.description !== undefined) {
+        core.warning(`Invalid value for "description". It should be a string.`);
+    }
+    if (typeof config.color === 'string') {
+        metadata.color = config.color;
+    }
+    else if (config.color !== undefined) {
+        core.warning(`Invalid value for "color". It should be a string.`);
+    }
+    return metadata;
 }
 function toMatchConfig(config) {
     const changedFilesConfig = (0, changedFiles_1.toChangedFilesMatchConfig)(config);
@@ -457,14 +488,19 @@ const getMissingLabels = (client, labels) => __awaiter(void 0, void 0, void 0, f
 });
 exports.getMissingLabels = getMissingLabels;
 // Function to create a list of labels
-const createLabels = (client, labels) => __awaiter(void 0, void 0, void 0, function* () {
+const createLabels = (client, labels, labelConfigs) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     for (const label of labels) {
+        const configs = labelConfigs.get(label);
+        const metadata = (_a = configs === null || configs === void 0 ? void 0 : configs.find(config => config.meta)) === null || _a === void 0 ? void 0 : _a.meta;
+        const colorConfig = (metadata === null || metadata === void 0 ? void 0 : metadata.color) || 'ffffff';
+        const descriptionConfig = (metadata === null || metadata === void 0 ? void 0 : metadata.description) || 'Created from labeler action';
         yield client.rest.issues.createLabel({
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
             name: label,
-            color: 'ffffff', // Optional: Set a default color for new labels
-            description: 'Automatically created label' // Optional: Add a description
+            color: colorConfig,
+            description: descriptionConfig
         });
     }
 });
@@ -1104,7 +1140,7 @@ function labeler() {
                         const missingLabels = yield api.getMissingLabels(client, labelsToAdd);
                         if (missingLabels.length > 0) {
                             core.info(`Creating labels: ${missingLabels.join(', ')}`);
-                            yield api.createLabels(client, missingLabels);
+                            yield api.createLabels(client, missingLabels, labelConfigs);
                         }
                     }
                     if (!(0, lodash_isequal_1.default)(labelsToAdd, preexistingLabels)) {

@@ -40,6 +40,12 @@ describe('getLabelConfigMapFromObject', () => {
         {baseBranch: undefined, headBranch: ['regexp']},
         {baseBranch: ['regexp'], headBranch: undefined}
       ]
+    },
+    {
+      meta: {
+        description: 'Label1 description',
+        color: 'ff00ff'
+      }
     }
   ]);
   expected.set('label2', [
@@ -49,6 +55,12 @@ describe('getLabelConfigMapFromObject', () => {
         {baseBranch: undefined, headBranch: ['regexp']},
         {baseBranch: ['regexp'], headBranch: undefined}
       ]
+    },
+    {
+      meta: {
+        description: 'Label2 description',
+        color: 'ffff00'
+      }
     }
   ]);
 

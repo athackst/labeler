@@ -37,6 +37,8 @@ The base match object is defined as:
   - all-globs-to-all-files: ['list', 'of', 'globs']
 - base-branch: ['list', 'of', 'regexps']
 - head-branch: ['list', 'of', 'regexps']
+- description: 'Description of label'
+- color: 'Color of label'
 ```
 
 There are two top-level keys, `any` and `all`, which both accept the same configuration options:
@@ -72,6 +74,8 @@ The fields are defined as follows:
     - `any-glob-to-all-files`: ANY glob must match against ALL changed files
     - `all-globs-to-any-file`: ALL globs must match against ANY changed file
     - `all-globs-to-all-files`: ALL globs must match against ALL changed files
+- `description`: The description of the label if creating it
+- `color`: The color of the label if creating it 
 
 If a base option is provided without a top-level key, then it will default to `any`. More specifically, the following two configurations are equivalent:
 ```yml
@@ -144,6 +148,13 @@ feature:
 # Add 'release' label to any PR that is opened against the `main` branch
 release:
  - base-branch: 'main'
+
+ # Define label properties
+ created-label:
+  - changed-files:
+    - any-glob-to-any-file: '*'
+  - description: "This label was created if it didn't already exist"
+  - color: "abcdef"
 ```
 
 ### Create Workflow
@@ -230,7 +241,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      issues: write
     runs-on: ubuntu-latest
     steps:
     
@@ -288,7 +298,6 @@ In order to add labels to pull requests, the GitHub labeler action requires writ
     permissions:
       contents: read
       pull-requests: write
-      issues: write # Needed for creating labels that don't already exist.
 ```
 
 ## Notes regarding `pull_request_target` event

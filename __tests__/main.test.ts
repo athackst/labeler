@@ -40,7 +40,8 @@ const yamlFixtures = {
   'branches.yml': fs.readFileSync('__tests__/fixtures/branches.yml'),
   'only_pdfs.yml': fs.readFileSync('__tests__/fixtures/only_pdfs.yml'),
   'not_supported.yml': fs.readFileSync('__tests__/fixtures/not_supported.yml'),
-  'any_and_all.yml': fs.readFileSync('__tests__/fixtures/any_and_all.yml')
+  'any_and_all.yml': fs.readFileSync('__tests__/fixtures/any_and_all.yml'),
+  'label_meta.yml': fs.readFileSync('__tests__/fixtures/label_meta.yml')
 };
 
 const configureInput = (
@@ -485,8 +486,8 @@ describe('run', () => {
       create: true
     });
 
-    usingLabelerConfigYaml('only_pdfs.yml');
-    mockGitHubResponseChangedFiles('foo.pdf');
+    usingLabelerConfigYaml('label_meta.yml');
+    mockGitHubResponseChangedFiles('tests/test.txt');
     getPullMock.mockResolvedValue(<any>{
       data: {
         labels: []
@@ -497,14 +498,37 @@ describe('run', () => {
 
     expect(coreInfoMock).toHaveBeenCalledTimes(2);
     expect(coreInfoMock).toHaveBeenCalledWith(
-      'Creating labels: touched-a-pdf-file'
+      'Creating labels: label1, label2, label3, label4'
     );
 
-    expect(createLabelMock).toHaveBeenCalledTimes(1);
+    expect(createLabelMock).toHaveBeenCalledTimes(4);
     expect(createLabelMock).toHaveBeenCalledWith({
       owner: 'monalisa',
       repo: 'helloworld',
-      name: 'touched-a-pdf-file'
+      name: 'label1',
+      color: 'ffffff',
+      description: 'Created from labeler action'
+    });
+    expect(createLabelMock).toHaveBeenCalledWith({
+      owner: 'monalisa',
+      repo: 'helloworld',
+      name: 'label2',
+      color: 'ff00ff',
+      description: 'Label2 description'
+    });
+    expect(createLabelMock).toHaveBeenCalledWith({
+      owner: 'monalisa',
+      repo: 'helloworld',
+      name: 'label3',
+      color: 'ffffff',
+      description: 'Label3 description'
+    });
+    expect(createLabelMock).toHaveBeenCalledWith({
+      owner: 'monalisa',
+      repo: 'helloworld',
+      name: 'label4',
+      color: '000000',
+      description: 'Created from labeler action'
     });
     expect(coreWarningMock).toHaveBeenCalledTimes(0); // No warnings issued
   });

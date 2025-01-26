@@ -62,7 +62,7 @@ async function labeler() {
         const missingLabels = await api.getMissingLabels(client, labelsToAdd);
         if (missingLabels.length > 0) {
           core.info(`Creating labels: ${missingLabels.join(', ')}`);
-          await api.createLabels(client, missingLabels);
+          await api.createLabels(client, missingLabels, labelConfigs);
         }
       }
 
