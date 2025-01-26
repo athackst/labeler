@@ -499,7 +499,7 @@ const createLabels = (client, labels, labelConfigs) => __awaiter(void 0, void 0,
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
             name: label,
-            color: colorConfig,
+            color: colorConfig.replace('#', ''),
             description: descriptionConfig
         });
     }

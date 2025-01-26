@@ -48,7 +48,7 @@ export const createLabels = async (
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
       name: label,
-      color: colorConfig,
+      color: colorConfig.replace('#', ''),
       description: descriptionConfig
     });
   }

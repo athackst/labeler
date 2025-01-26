@@ -17,4 +17,4 @@ label3:
 label4:
   - changed-files:
       - any-glob-to-any-file: ['tests/**/*']
-  - color: '000000'
+  - color: '#000000'
