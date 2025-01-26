@@ -63,6 +63,10 @@ export async function labeler() {
           label => !preexistingLabels.includes(label)
         );
       }
+
+      if (newLabels.length > 0) {
+        await api.updateLabels(client, newLabels, labelConfigs);
+      }
     } catch (error: any) {
       if (
         error.name === 'HttpError' &&
